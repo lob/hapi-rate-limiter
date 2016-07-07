@@ -1,0 +1,38 @@
+{
+  "name": "hapi-rate-limit",
+  "version": "0.0.0",
+  "description": "Hapi plugin to handle rate-limiting",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "NODE_ENV=test istanbul cover _mocha -- test --recursive --timeout 30000",
+    "lint": "eslint .",
+    "enforce": "istanbul check-coverage --statement 100 --branch 100 --function 100 --lines 100",
+    "release:patch": "changelog -p && git add CHANGELOG.md && git commit -m 'updated CHANGELOG.md' && npm version patch && git push origin && git push origin --tags",
+    "release:minor": "changelog -m && git add CHANGELOG.md && git commit -m 'updated CHANGELOG.md' && npm version minor && git push origin && git push origin --tags",
+    "release:major": "changelog -M && git add CHANGELOG.md && git commit -m 'updated CHANGELOG.md' && npm version major && git push origin && git push origin --tags"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lob/hapi-rate-limit.git"
+  },
+  "keywords": [
+    "hapi"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lob/hapi-rate-limit/issues"
+  },
+  "homepage": "https://github.com/lob/hapi-rate-limit",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "eslint": "^1.10.3",
+    "eslint-config-lob": "^2.2.0",
+    "generate-changelog": "^1.0.2",
+    "istanbul": "^0.4.4",
+    "mocha": "^2.5.3",
+    "hapi": "^13.4.0"
+  }
+}
