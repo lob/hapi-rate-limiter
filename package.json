@@ -31,8 +31,9 @@
     "eslint": "^1.10.3",
     "eslint-config-lob": "^2.2.0",
     "generate-changelog": "^1.0.2",
+    "hapi": "^13.4.0",
     "istanbul": "^0.4.4",
     "mocha": "^2.5.3",
-    "hapi": "^13.4.0"
+    "sinon": "^1.17.4"
   }
 }
