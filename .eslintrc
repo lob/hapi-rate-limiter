@@ -1,3 +1,6 @@
 {
-  extends: "lob"
+  extends: "lob",
+  globals: {
+    expect: false
+  }
 }
