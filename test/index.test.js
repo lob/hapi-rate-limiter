@@ -83,7 +83,7 @@ describe('plugin', () => {
     options: {
       defaultRate,
       redisClient,
-      overLimitError: (rate) => createBoomError('RateLimitExceeded', 429, `Rate limit exceeded. Please wait ${rate.window} seconds and try your request again.`)
+      overLimitError: createBoomError('RateLimitExceeded', 429, (rate) => `Rate limit exceeded. Please wait ${rate.window} seconds and try your request again.`)
     }
   }], () => {});
 
@@ -98,7 +98,7 @@ describe('plugin', () => {
       credentials: { api_key: '123' }
     })
     .then((response) => {
-      expect(response.result.rate.current).to.eql(1);
+      expect(response.result.rate.remaining).to.eql(defaultRate.limit - 1);
     });
   });
 
@@ -162,11 +162,13 @@ describe('plugin', () => {
       });
     })
     .then((response) => {
+      expect(response.headers).to.contain.all.keys(['x-rate-limit-reset', 'x-rate-limit-limit', 'x-rate-limit-remaining', 'rate-limit-remaining', 'rate-limit-limit', 'rate-limit-window']);
       expect(response.statusCode).to.eql(429);
     });
   });
 
-  it('resets current value after window timeout', () => {
+  it('resets remaining value after window timeout', () => {
+    const now = Math.floor(new Date() / 1000);
     return Bluebird.resolve()
     .then(() => {
       return server.inject({
@@ -176,7 +178,8 @@ describe('plugin', () => {
       });
     })
     .then((response) => {
-      expect(response.result.rate.current).to.eql(1);
+      expect(response.result.rate.reset).to.eql(now + shortWindowRate.window);
+      expect(response.result.rate.remaining).to.eql(shortWindowRate.limit - 1);
     })
     .delay(shortWindowRate.window * 1000)
     .then(() => {
@@ -187,7 +190,7 @@ describe('plugin', () => {
       });
     })
     .then((response) => {
-      expect(response.result.rate.current).to.eql(1);
+      expect(response.result.rate.remaining).to.eql(shortWindowRate.limit - 1);
     });
   });
 
@@ -198,7 +201,7 @@ describe('plugin', () => {
       credentials: { api_key: '456' }
     })
     .then((response) => {
-      expect(response.result.rate.current).to.eql(1);
+      expect(response.result.rate.remaining).to.eql(defaultRate.limit - 1);
     })
     .then(() => {
       return server.inject({
@@ -211,7 +214,18 @@ describe('plugin', () => {
       });
     })
     .then((response) => {
-      expect(response.result.rate.current).to.eql(1);
+      expect(response.result.rate.remaining).to.eql(defaultRate.limit - 1);
+    });
+  });
+
+  it('sets the appropriate headers', () => {
+    return server.inject({
+      method: 'POST',
+      url: '/default_test',
+      credentials: { api_key: '123' }
+    })
+    .then((response) => {
+      expect(response.headers).to.contain.all.keys(['x-rate-limit-reset', 'x-rate-limit-limit', 'x-rate-limit-remaining', 'rate-limit-remaining', 'rate-limit-limit', 'rate-limit-window']);
     });
   });
 
