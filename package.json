@@ -27,12 +27,21 @@
   "dependencies": {
   },
   "devDependencies": {
+    "bluebird": "^3.4.0",
     "chai": "^3.5.0",
+    "create-boom-error": "^0.1.0",
     "eslint": "^1.10.3",
     "eslint-config-lob": "^2.2.0",
     "generate-changelog": "^1.0.2",
+    "hapi": "^13.4.0",
     "istanbul": "^0.4.4",
     "mocha": "^2.5.3",
-    "hapi": "^13.4.0"
+    "redis": "^2.6.2",
+    "redis-commands": "^1.2.0",
+    "then-redis": "^2.0.1"
+  },
+  "peerDependencies": {
+    "hapi": "^13.4.0",
+    "then-redis": "^2.0.1"
   }
 }
