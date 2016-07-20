@@ -83,6 +83,7 @@ describe('plugin', () => {
     options: {
       defaultRate,
       redisClient,
+      requestAPIKey: (request) => request.auth.credentials.api_key,
       overLimitError: createBoomError('RateLimitExceeded', 429, (rate) => `Rate limit exceeded. Please wait ${rate.window} seconds and try your request again.`)
     }
   }], () => {});
@@ -162,7 +163,7 @@ describe('plugin', () => {
       });
     })
     .then((response) => {
-      expect(response.headers).to.contain.all.keys(['x-rate-limit-reset', 'x-rate-limit-limit', 'x-rate-limit-remaining', 'rate-limit-remaining', 'rate-limit-limit', 'rate-limit-window']);
+      expect(response.headers).to.contain.all.keys(['x-rate-limit-reset', 'x-rate-limit-limit', 'x-rate-limit-remaining']);
       expect(response.statusCode).to.eql(429);
     });
   });
@@ -225,7 +226,7 @@ describe('plugin', () => {
       credentials: { api_key: '123' }
     })
     .then((response) => {
-      expect(response.headers).to.contain.all.keys(['x-rate-limit-reset', 'x-rate-limit-limit', 'x-rate-limit-remaining', 'rate-limit-remaining', 'rate-limit-limit', 'rate-limit-window']);
+      expect(response.headers).to.contain.all.keys(['x-rate-limit-reset', 'x-rate-limit-limit', 'x-rate-limit-remaining']);
     });
   });
 
