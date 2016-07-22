@@ -8,13 +8,15 @@ const Hapi = require('hapi');
 
 const server = new Hapi.Server();
 
+const defaultRate = {
+  limit: 10,
+  window: 60
+};
+
 server.register([
   register: require('hapi-rate-limit'),
   options: {
-    defaultRate: {
-      limit: 10,
-      window: 60
-    },
+    defaultRate: (request) => defaultRate,
     redisClient: myThenRedisClient,
     overLimitError: ErrConstructor
   }
@@ -26,6 +28,7 @@ server.register([
 #### Options
 All options `(defaultRate, requestAPIKey, redisClient, overLimitError)` are required for the plugin to work properly.
 ##### `defaultRate`
+Function that accepts a `Request` object and returns:
 ```
 {
   limit: # of max requests allows within window
@@ -46,17 +49,22 @@ If a request count goes over the max limit, this constructor is used to instanti
 Settings for individual routes can be set while registering a route.
 
 #### Custom Rate
-A custom `limit` and `window` can be registered for each route.
+A custom `limit` and `window` can be registered for each route. The `rate` key
+accepts a `Request` object and returns a [rate](#defaultRate).
 
 ```
+const customRate = {
+  limit: 20,
+  window: 30
+};
+
 server.route([{
   method: 'POST',
   path: '/custom_rate_route',
   config: {
     plugins: {
       rateLimit: {
-        limit: 20,
-        window: 30
+        rate: (request) => customRate
       }
     },
     handler: (request, reply) => {
