@@ -1,3 +1,9 @@
+#### 0.1.1 (2016-7-22)
+
+##### Refactors
+
+* **name:** changed name ([3b74cf7f](https://github.com/lob/hapi-rate-limit/commit/3b74cf7fe99f79230c16191875f8b849914902a8))
+
 ### 0.1.0 (2016-7-22)
 
 ##### New Features
