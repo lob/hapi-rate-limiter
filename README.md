@@ -24,7 +24,7 @@ server.register([
 ```
 
 #### Options
-All options `(defaultRate, redisClient, overLimitError)` are required for the plugin to work properly.
+All options `(defaultRate, requestAPIKey, redisClient, overLimitError)` are required for the plugin to work properly.
 ##### `defaultRate`
 ```
 {
@@ -32,6 +32,9 @@ All options `(defaultRate, redisClient, overLimitError)` are required for the pl
   window: # of seconds before count resets
 }
 ```
+
+##### `requestAPIKey`
+A function that returns an api_key given a `request` object
 
 ##### `redisClient`
 A `then-redis` client that is already connected
