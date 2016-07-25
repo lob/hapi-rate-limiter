@@ -35,7 +35,9 @@ describe('plugin', () => {
     path: '/short_limit_test',
     config: {
       plugins: {
-        rateLimit: shortLimitRate
+        rateLimit: {
+          rate: () => shortLimitRate
+        }
       },
       handler: (request, reply) => {
         reply({ rate: request.plugins['hapi-rate-limit'].rate });
@@ -47,7 +49,9 @@ describe('plugin', () => {
     path: '/short_window_test',
     config: {
       plugins: {
-        rateLimit: shortWindowRate
+        rateLimit: {
+          rate: () => shortWindowRate
+        }
       },
       handler: (request, reply) => {
         reply({ rate: request.plugins['hapi-rate-limit'].rate });
@@ -81,7 +85,7 @@ describe('plugin', () => {
   server.register([{
     register: require('../lib'),
     options: {
-      defaultRate,
+      defaultRate: () => defaultRate,
       redisClient,
       requestAPIKey: (request) => request.auth.credentials.api_key,
       overLimitError: createBoomError('RateLimitExceeded', 429, (rate) => `Rate limit exceeded. Please wait ${rate.window} seconds and try your request again.`)
