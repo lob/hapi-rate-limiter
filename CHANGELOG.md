@@ -1,3 +1,9 @@
+### 0.2.0 (2016-7-25)
+
+##### New Features
+
+* **rate:** rate to a function ([adece2c8](https://github.com/lob/hapi-rate-limit/commit/adece2c8e8f6a2cf8666820feb3158d444aaf87f))
+
 #### 0.1.1 (2016-7-22)
 
 ##### Refactors
