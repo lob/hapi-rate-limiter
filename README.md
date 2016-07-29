@@ -27,14 +27,19 @@ server.register([
 
 #### Options
 All options `(defaultRate, requestAPIKey, redisClient, overLimitError)` are required for the plugin to work properly.
+
+Rate-limiting is by default disabled on all routes, unless `enabled=true` in the route plugin [settings](#custom-rate).
+
 ##### `defaultRate`
 Function that accepts a `Request` object and returns:
 ```
 {
-  limit: # of max requests allows within window
-  window: # of seconds before count resets
+  limit: # of max requests allows within window (integer)
+  window: # of seconds before count resets (integer)
 }
 ```
+
+This is used if there is no `rate` function defined in the route plugin [settings](#custom-rate).
 
 ##### `requestAPIKey`
 A function that returns an api_key given a `request` object
@@ -64,6 +69,7 @@ server.route([{
   config: {
     plugins: {
       rateLimit: {
+        enabled: true
         rate: (request) => customRate
       }
     },
@@ -74,19 +80,19 @@ server.route([{
 }]);
 ```
 
+To enable rate-limiting for a route, `enabled` must be `true` in the route plugin settings.
+
+`rate` can also be defined in these settings to set a custom rate. If this is not defined, `defaultRate` will be used.
+
 #### Disable Rate-Limiting for route
-Rate-limiting can be disabled for a particular route by setting `enabled: false` to the plugin settings while registering a route. Plugin for route is enabled by default.
+
+If `plugins.rateLimit` is not defined, rate-limiting is disabled for that route.
 
 ```
 server.route([{
   method: 'POST',
   path: '/disabled_route',
   config: {
-    plugins: {
-      rateLimit: {
-        enabled: false
-      }
-    },
     handler: (request, reply) => {
       reply({ rate: request.plugins['hapi-rate-limit'].rate });
     }

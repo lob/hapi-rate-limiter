@@ -25,6 +25,11 @@ describe('plugin', () => {
     method: 'POST',
     path: '/default_test',
     config: {
+      plugins: {
+        rateLimit: {
+          enabled: true
+        }
+      },
       handler: (request, reply) => {
         reply({ rate: request.plugins['hapi-rate-limit'].rate });
       }
@@ -36,6 +41,7 @@ describe('plugin', () => {
     config: {
       plugins: {
         rateLimit: {
+          enabled: true,
           rate: () => shortLimitRate
         }
       },
@@ -50,6 +56,7 @@ describe('plugin', () => {
     config: {
       plugins: {
         rateLimit: {
+          enabled: true,
           rate: () => shortWindowRate
         }
       },
@@ -62,11 +69,6 @@ describe('plugin', () => {
     method: 'POST',
     path: '/disabled_test',
     config: {
-      plugins: {
-        rateLimit: {
-          enabled: false
-        }
-      },
       handler: (request, reply) => {
         reply({ rate: request.plugins['hapi-rate-limit'].rate });
       }
