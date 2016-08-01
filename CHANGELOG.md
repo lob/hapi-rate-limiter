@@ -1,3 +1,9 @@
+### 0.3.0 (2016-8-1)
+
+##### New Features
+
+* **default:** added deaulting ([44fc2673](https://github.com/lob/hapi-rate-limit/commit/44fc267354033d97acbb86d302aa40e7140646a4))
+
 ### 0.2.0 (2016-7-25)
 
 ##### New Features
