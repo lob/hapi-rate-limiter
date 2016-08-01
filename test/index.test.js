@@ -84,22 +84,25 @@ describe('plugin', () => {
     }
   }]);
 
-  server.register([{
-    register: require('../lib'),
-    options: {
-      defaultRate: () => defaultRate,
-      redisClient,
-      requestAPIKey: (request) => request.auth.credentials.api_key,
-      overLimitError: createBoomError('RateLimitExceeded', 429, (rate) => `Rate limit exceeded. Please wait ${rate.window} seconds and try your request again.`)
+  server.register([
+    require('inject-then'),
+    {
+      register: require('../lib'),
+      options: {
+        defaultRate: () => defaultRate,
+        redisClient,
+        requestAPIKey: (request) => request.auth.credentials.api_key,
+        overLimitError: createBoomError('RateLimitExceeded', 429, (rate) => `Rate limit exceeded. Please wait ${rate.window} seconds and try your request again.`)
+      }
     }
-  }], () => {});
+  ], () => {});
 
   beforeEach(() => {
     return redisClient.flushdb();
   });
 
   it('counts number of requests made', () => {
-    return server.inject({
+    return server.injectThen({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
@@ -110,7 +113,7 @@ describe('plugin', () => {
   });
 
   it('ignores everything except GET, POST, and DELETE requests', () => {
-    return server.inject({
+    return server.injectThen({
       method: 'PUT',
       url: '/put_test',
       credentials: { api_key: '123' }
@@ -121,7 +124,7 @@ describe('plugin', () => {
   });
 
   it('ignores rate-limit disabled routes', () => {
-    return server.inject({
+    return server.injectThen({
       method: 'POST',
       url: '/disabled_test',
       credentials: { api_key: '123' }
@@ -132,7 +135,7 @@ describe('plugin', () => {
   });
 
   it('sets custom rate given', () => {
-    return server.inject({
+    return server.injectThen({
       method: 'POST',
       url: '/short_limit_test',
       credentials: { api_key: '123' }
@@ -144,7 +147,7 @@ describe('plugin', () => {
   });
 
   it('sets default rate if none provided', () => {
-    return server.inject({
+    return server.injectThen({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
@@ -156,13 +159,13 @@ describe('plugin', () => {
   });
 
   it('blocks requests over limit', () => {
-    return server.inject({
+    return server.injectThen({
       method: 'POST',
       url: '/short_limit_test',
       credentials: { api_key: '123' }
     })
     .then(() => {
-      return server.inject({
+      return server.injectThen({
         method: 'POST',
         url: '/short_limit_test',
         credentials: { api_key: '123' }
@@ -178,7 +181,7 @@ describe('plugin', () => {
     const now = Math.floor(new Date() / 1000);
     return Bluebird.resolve()
     .then(() => {
-      return server.inject({
+      return server.injectThen({
         method: 'POST',
         url: '/short_window_test',
         credentials: { api_key: '123' }
@@ -190,7 +193,7 @@ describe('plugin', () => {
     })
     .delay(shortWindowRate.window * 1000)
     .then(() => {
-      return server.inject({
+      return server.injectThen({
         method: 'POST',
         url: '/short_window_test',
         credentials: { api_key: '123' }
@@ -202,7 +205,7 @@ describe('plugin', () => {
   });
 
   it('has different counts for different api_keys', () => {
-    return server.inject({
+    return server.injectThen({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '456' }
@@ -211,7 +214,7 @@ describe('plugin', () => {
       expect(response.result.rate.remaining).to.eql(defaultRate.limit - 1);
     })
     .then(() => {
-      return server.inject({
+      return server.injectThen({
         method: 'POST',
         url: '/default_test',
         payload: {
@@ -226,7 +229,7 @@ describe('plugin', () => {
   });
 
   it('sets the appropriate headers', () => {
-    return server.inject({
+    return server.injectThen({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
