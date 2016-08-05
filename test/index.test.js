@@ -21,6 +21,21 @@ describe('plugin', () => {
   const server = new Hapi.Server();
 
   server.connection({ port: 80 });
+
+  server.register([
+    require('inject-then'),
+    require('./authentication'),
+    {
+      register: require('../lib'),
+      options: {
+        defaultRate: () => defaultRate,
+        redisClient,
+        requestAPIKey: (request) => request.auth.credentials.api_key,
+        overLimitError: createBoomError('RateLimitExceeded', 429, (rate) => `Rate limit exceeded. Please wait ${rate.window} seconds and try your request again.`)
+      }
+    }
+  ], () => {});
+
   server.route([{
     method: 'POST',
     path: '/default_test',
@@ -31,7 +46,7 @@ describe('plugin', () => {
         }
       },
       handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limit'].rate });
+        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
       }
     }
   },
@@ -46,7 +61,7 @@ describe('plugin', () => {
         }
       },
       handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limit'].rate });
+        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
       }
     }
   },
@@ -61,7 +76,17 @@ describe('plugin', () => {
         }
       },
       handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limit'].rate });
+        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      }
+    }
+  },
+  {
+    method: 'POST',
+    path: '/auth_enabled_test',
+    config: {
+      auth: 'basic',
+      handler: (request, reply) => {
+        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
       }
     }
   },
@@ -70,7 +95,7 @@ describe('plugin', () => {
     path: '/disabled_test',
     config: {
       handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limit'].rate });
+        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
       }
     }
   },
@@ -79,23 +104,10 @@ describe('plugin', () => {
     path: '/put_test',
     config: {
       handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limit'].rate });
+        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
       }
     }
   }]);
-
-  server.register([
-    require('inject-then'),
-    {
-      register: require('../lib'),
-      options: {
-        defaultRate: () => defaultRate,
-        redisClient,
-        requestAPIKey: (request) => request.auth.credentials.api_key,
-        overLimitError: createBoomError('RateLimitExceeded', 429, (rate) => `Rate limit exceeded. Please wait ${rate.window} seconds and try your request again.`)
-      }
-    }
-  ], () => {});
 
   beforeEach(() => {
     return redisClient.flushdb();
@@ -236,6 +248,16 @@ describe('plugin', () => {
     })
     .then((response) => {
       expect(response.headers).to.contain.all.keys(['x-rate-limit-reset', 'x-rate-limit-limit', 'x-rate-limit-remaining']);
+    });
+  });
+
+  it('ignores requests with invalid auth credentials', () => {
+    return server.injectThen({
+      method: 'POST',
+      url: '/auth_enabled_test'
+    })
+    .then((response) => {
+      expect(response.headers).to.not.contain.all.keys(['x-rate-limit-reset', 'x-rate-limit-limit', 'x-rate-limit-remaining']);
     });
   });
 
