@@ -1,3 +1,13 @@
+### 0.4.0 (2016-8-5)
+
+##### New Features
+
+* **headers:** added header + rename ([8616ebfd](https://github.com/lob/hapi-rate-limit/commit/8616ebfd4a3668515ec41d05f7422df73d309cec))
+
+##### Refactors
+
+* **peerDeps:** downgraded peer-dependencies ([5aef52fa](https://github.com/lob/hapi-rate-limit/commit/5aef52fa2f63f549de50b799ed33c351cce93092))
+
 ### 0.3.0 (2016-8-1)
 
 ##### New Features
