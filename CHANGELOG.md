@@ -1,3 +1,9 @@
+### 0.5.0 (2016-8-10)
+
+##### New Features
+
+* **key:** generalized account key func ([3f4b8ef3](https://github.com/lob/hapi-rate-limit/commit/3f4b8ef3dfa6c9455093a79c3ae9b419ee994309))
+
 ### 0.4.0 (2016-8-5)
 
 ##### New Features
