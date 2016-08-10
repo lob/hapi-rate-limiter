@@ -26,7 +26,7 @@ server.register([
 ```
 
 #### Options
-All options `(defaultRate, requestAPIKey, redisClient, overLimitError)` are required for the plugin to work properly.
+All options `(defaultRate, rateLimitKey, redisClient, overLimitError)` are required for the plugin to work properly.
 
 Rate-limiting is by default disabled on all routes, unless `enabled=true` in the route plugin [settings](#custom-rate).
 
@@ -41,8 +41,8 @@ Function that accepts a `Request` object and returns:
 
 This is used if there is no `rate` function defined in the route plugin [settings](#custom-rate).
 
-##### `requestAPIKey`
-A function that returns an api_key given a `request` object
+##### `rateLimitKey`
+A function that returns a key for an given request. This can be any differentiating value in each request, such as an API Key, IP Address, etc
 
 ##### `redisClient`
 A `then-redis` client that is already connected

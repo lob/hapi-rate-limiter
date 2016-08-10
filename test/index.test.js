@@ -30,7 +30,7 @@ describe('plugin', () => {
       options: {
         defaultRate: () => defaultRate,
         redisClient,
-        requestAPIKey: (request) => request.auth.credentials.api_key,
+        rateLimitKey: (request) => request.auth.credentials.api_key,
         overLimitError: createBoomError('RateLimitExceeded', 429, (rate) => `Rate limit exceeded. Please wait ${rate.window} seconds and try your request again.`)
       }
     }
