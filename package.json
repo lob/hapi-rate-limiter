@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/lob/hapi-rate-limit.git"
+    "url": "https://github.com/lob/hapi-rate-limiter.git"
   },
   "keywords": [
     "hapi"
@@ -21,9 +21,9 @@
   "author": "",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/lob/hapi-rate-limit/issues"
+    "url": "https://github.com/lob/hapi-rate-limiter/issues"
   },
-  "homepage": "https://github.com/lob/hapi-rate-limit",
+  "homepage": "https://github.com/lob/hapi-rate-limiter",
   "dependencies": {},
   "devDependencies": {
     "bluebird": "^3.4.0",
