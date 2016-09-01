@@ -1,4 +1,4 @@
-# hapi-rate-limit
+# hapi-rate-limiter
 A [Hapi](http://hapijs.com/) plugin that enables rate-limiting for GET, POST, and DELETE requests. This plugin can be configured with custom
 rates on a route-by-route basis.
 
@@ -14,7 +14,7 @@ const defaultRate = {
 };
 
 server.register([
-  register: require('hapi-rate-limit'),
+  register: require('hapi-rate-limiter'),
   options: {
     defaultRate: (request) => defaultRate,
     redisClient: myThenRedisClient,
@@ -74,7 +74,7 @@ server.route([{
       }
     },
     handler: (request, reply) => {
-      reply({ rate: request.plugins['hapi-rate-limit'].rate });
+      reply({ rate: request.plugins['hapi-rate-limiter'].rate });
     }
   }
 }]);
@@ -94,7 +94,7 @@ server.route([{
   path: '/disabled_route',
   config: {
     handler: (request, reply) => {
-      reply({ rate: request.plugins['hapi-rate-limit'].rate });
+      reply({ rate: request.plugins['hapi-rate-limiter'].rate });
     }
   }
 }]);
