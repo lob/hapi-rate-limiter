@@ -82,6 +82,21 @@ describe('plugin', () => {
   },
   {
     method: 'POST',
+    path: '/custom_rate_limit_key_test',
+    config: {
+      plugins: {
+        rateLimit: {
+          enabled: true,
+          rateLimitKey: () => 'custom'
+        }
+      },
+      handler: (request, reply) => {
+        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      }
+    }
+  },
+  {
+    method: 'POST',
     path: '/auth_enabled_test',
     config: {
       auth: 'basic',
@@ -167,6 +182,32 @@ describe('plugin', () => {
     .then((response) => {
       expect(response.result.rate.limit).to.eql(defaultRate.limit);
       expect(response.result.rate.window).to.eql(defaultRate.window);
+    });
+  });
+
+  it('uses custom rateLimitKey function if provided', () => {
+    return server.injectThen({
+      method: 'POST',
+      url: '/custom_rate_limit_key_test',
+      credentials: { api_key: '123' }
+    })
+    .then((response) => {
+      expect(response.result.rate.limit).to.eql(defaultRate.limit);
+      expect(response.result.rate.window).to.eql(defaultRate.window);
+      expect(redisClient.get('custom')).to.exist;
+    });
+  });
+
+  it('uses default rateLimitKey if none provided', () => {
+    return server.injectThen({
+      method: 'POST',
+      url: '/default_test',
+      credentials: { api_key: '123' }
+    })
+    .then((response) => {
+      expect(response.result.rate.limit).to.eql(defaultRate.limit);
+      expect(response.result.rate.window).to.eql(defaultRate.window);
+      expect(redisClient.get('123')).to.exist;
     });
   });
 
