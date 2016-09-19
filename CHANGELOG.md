@@ -1,3 +1,13 @@
+### 0.6.0 (2016-9-19)
+
+##### New Features
+
+* **rateLimitKey:** Allows endpoint specification of the rateLimitKey function ([162e1a8f](https://github.com/lob/hapi-rate-limiter/commit/162e1a8f536e840e522dbcb9944d18cc1932feed))
+
+##### Bug Fixes
+
+* **documentation:** update README to latest plugin name ([fd98fe0e](https://github.com/lob/hapi-rate-limiter/commit/fd98fe0e355486fd1932353cfca6259ca9eb3b90))
+
 ### 0.5.0 (2016-8-10)
 
 ##### New Features
