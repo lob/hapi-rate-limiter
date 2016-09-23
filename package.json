@@ -41,7 +41,7 @@
     "then-redis": "^1.3.0"
   },
   "peerDependencies": {
-    "hapi": "^11.1.2",
+    "hapi": ">=11 <14",
     "then-redis": "^1.3.0"
   }
 }
