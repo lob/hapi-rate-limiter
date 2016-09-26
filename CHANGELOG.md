@@ -1,3 +1,9 @@
+#### 0.6.1 (2016-9-26)
+
+##### Chores
+
+* **dep:** updates peer dependency versioning ([cb2e0740](https://github.com/lob/hapi-rate-limiter/commit/cb2e0740b0274759beeb1c479a5e73db1a8a4cc4))
+
 ### 0.6.0 (2016-9-19)
 
 ##### New Features
