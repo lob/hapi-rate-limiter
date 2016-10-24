@@ -4,9 +4,19 @@ rates on a route-by-route basis.
 
 ## Register the plugin
 ```
-const Hapi = require('hapi');
+const Bluebird = require('bluebird');
+const Hapi     = require('hapi');
+const Redis    = require('redis');
 
-const server = new Hapi.Server();
+Bluebird.promisifyAll(Redis.RedisClient.prototype);
+Bluebird.promisifyAll(Redis.Multi.prototype);
+
+const Server = new Hapi.Server();
+
+const RedisClient = Redis.createClient({
+  port: '6379',
+  host: 'localhost'
+});
 
 const defaultRate = {
   limit: 10,
@@ -17,7 +27,7 @@ server.register([
   register: require('hapi-rate-limiter'),
   options: {
     defaultRate: (request) => defaultRate,
-    redisClient: myThenRedisClient,
+    redisClient: RedisClient,
     overLimitError: ErrConstructor
   }
 ], (err) => {
@@ -45,7 +55,7 @@ This is used if there is no `rate` function defined in the route plugin [setting
 A function that returns a key for an given request. This can be any differentiating value in each request, such as an API Key, IP Address, etc
 
 ##### `redisClient`
-A `then-redis` client that is already connected
+A promisified redis client
 
 ##### `overLimitError`
 If a request count goes over the max limit, this constructor is used to instantiate an error object and return it in the response
