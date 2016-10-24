@@ -1,3 +1,9 @@
+### 0.7.0 (2016-10-24)
+
+##### Chores
+
+* **redis:** remove dependence on then-redis ([30cf3e7d](https://github.com/lob/hapi-rate-limiter/commit/30cf3e7d7a2e666b23a806f3bc4e7cbf35914907))
+
 #### 0.6.1 (2016-9-26)
 
 ##### Chores
