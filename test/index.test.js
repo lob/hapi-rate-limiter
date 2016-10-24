@@ -5,7 +5,9 @@ const expect = require('chai').expect;
 const Bluebird        = require('bluebird');
 const createBoomError = require('create-boom-error');
 const Hapi            = require('hapi');
-const Redis           = require('then-redis');
+const Redis           = require('redis');
+Bluebird.promisifyAll(Redis.RedisClient.prototype);
+Bluebird.promisifyAll(Redis.Multi.prototype);
 
 const redisClient = Redis.createClient({
   port: '6379',
