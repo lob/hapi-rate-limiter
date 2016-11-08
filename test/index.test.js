@@ -126,6 +126,14 @@ describe('plugin', () => {
     }
   }]);
 
+  before((done) => {
+    server.start(() => done());
+  });
+
+  after((done) => {
+    server.stop(() => done());
+  });
+
   beforeEach(() => {
     return redisClient.flushdb();
   });
