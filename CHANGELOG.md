@@ -1,3 +1,9 @@
+## 1.0.0 (2016-11-9)
+
+##### Bug Fixes
+
+* **ttl:** fixes key expiration race condition ([e4e9adad](https://github.com/lob/hapi-rate-limiter/commit/e4e9adad37f0b1dceced19039bb52b726ceafd5b))
+
 ### 0.7.0 (2016-10-24)
 
 ##### Chores
