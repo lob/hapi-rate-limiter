@@ -14,6 +14,8 @@ const redisClient = Redis.createClient({
   host: 'localhost'
 });
 
+const RateLimitError = createBoomError('RateLimitExceeded', 429, (rate) => `Rate limit exceeded. Please wait ${rate.window} seconds and try your request again.`);
+
 describe('plugin', () => {
 
   const shortLimitRate = { limit: 1, window: 60 };
@@ -33,7 +35,9 @@ describe('plugin', () => {
         defaultRate: () => defaultRate,
         redisClient,
         rateLimitKey: (request) => request.auth.credentials.api_key,
-        overLimitError: createBoomError('RateLimitExceeded', 429, (rate) => `Rate limit exceeded. Please wait ${rate.window} seconds and try your request again.`)
+        overLimitError: function (rate) {
+          return new RateLimitError(rate);
+        }
       }
     }
   ], () => {});
