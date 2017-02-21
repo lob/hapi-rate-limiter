@@ -1,3 +1,9 @@
+## 2.0.0 (2017-2-21)
+
+##### Chores
+
+* **readme:** updates README to match new interface ([eb72133b](https://github.com/lob/hapi-rate-limiter/commit/eb72133bd042f917e8a931612ea4180546be0a36))
+
 ## 1.0.0 (2016-11-9)
 
 ##### Bug Fixes
