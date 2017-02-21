@@ -28,7 +28,7 @@ server.register([
   options: {
     defaultRate: (request) => defaultRate,
     redisClient: RedisClient,
-    overLimitError: ErrConstructor
+    overLimitError: (rate) => new Error(`Rate Limit Exceeded - try again in ${rate.window} seconds`)
   }
 ], (err) => {
 
@@ -58,7 +58,7 @@ A function that returns a key for an given request. This can be any differentiat
 A promisified redis client
 
 ##### `overLimitError`
-If a request count goes over the max limit, this constructor is used to instantiate an error object and return it in the response
+A function that is called when the rate limit is exceeded. It must return an error. It is called with an object `rate` that contains information about the current state of the request rate.
 
 ## Managing Routes
 Settings for individual routes can be set while registering a route.
