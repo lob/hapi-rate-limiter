@@ -35,9 +35,7 @@ describe('plugin', () => {
         defaultRate: () => defaultRate,
         redisClient,
         rateLimitKey: (request) => request.auth.credentials.api_key,
-        overLimitError: function (rate) {
-          return new RateLimitError(rate);
-        }
+        overLimitError: (rate) => new RateLimitError(rate)
       }
     }
   ], () => {});
