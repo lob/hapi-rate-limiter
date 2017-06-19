@@ -101,6 +101,21 @@ describe('plugin', () => {
   },
   {
     method: 'POST',
+    path: '/custom_rate_limit_key_prefix_test',
+    config: {
+      plugins: {
+        rateLimit: {
+          enabled: true,
+          rateLimitKeyPrefix: () => 'custom-prefix'
+        }
+      },
+      handler: (request, reply) => {
+        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      }
+    }
+  },
+  {
+    method: 'POST',
     path: '/auth_enabled_test',
     config: {
       auth: 'basic',
@@ -206,7 +221,10 @@ describe('plugin', () => {
     .then((response) => {
       expect(response.result.rate.limit).to.eql(defaultRate.limit);
       expect(response.result.rate.window).to.eql(defaultRate.window);
-      expect(redisClient.get('custom')).to.exist;
+      return redisClient.getAsync('hapi-rate-limiter:post:/custom_rate_limit_key_test:custom');
+    })
+    .then((reply) => {
+      expect(reply).to.equal('1');
     });
   });
 
@@ -219,7 +237,42 @@ describe('plugin', () => {
     .then((response) => {
       expect(response.result.rate.limit).to.eql(defaultRate.limit);
       expect(response.result.rate.window).to.eql(defaultRate.window);
-      expect(redisClient.get('123')).to.exist;
+      return redisClient.getAsync('hapi-rate-limiter:post:/default_test:123');
+    })
+    .then((reply) => {
+      expect(reply).to.equal('1');
+    });
+  });
+
+  it('uses custom rateLimitKeyPrefix function if provided', () => {
+    return server.injectThen({
+      method: 'POST',
+      url: '/custom_rate_limit_key_prefix_test',
+      credentials: { api_key: '123' }
+    })
+    .then((response) => {
+      expect(response.result.rate.limit).to.eql(defaultRate.limit);
+      expect(response.result.rate.window).to.eql(defaultRate.window);
+      return redisClient.getAsync('hapi-rate-limiter:custom-prefix:123');
+    })
+    .then((reply) => {
+      expect(reply).to.equal('1');
+    });
+  });
+
+  it('uses default rateLimitKeyPrefix if no custom rateLimitKeyPrefix is registered for the route and no rateLimitKeyPrefix is set in the plugin options', () => {
+    return server.injectThen({
+      method: 'POST',
+      url: '/default_test',
+      credentials: { api_key: '123' }
+    })
+    .then((response) => {
+      expect(response.result.rate.limit).to.eql(defaultRate.limit);
+      expect(response.result.rate.window).to.eql(defaultRate.window);
+      return redisClient.getAsync('hapi-rate-limiter:post:/default_test:123');
+    })
+    .then((reply) => {
+      expect(reply).to.equal('1');
     });
   });
 
@@ -311,6 +364,107 @@ describe('plugin', () => {
     })
     .then((response) => {
       expect(response.headers).to.not.contain.all.keys(['x-rate-limit-reset', 'x-rate-limit-limit', 'x-rate-limit-remaining']);
+    });
+  });
+
+});
+
+describe('register plugin with rateLimitKeyPrefix option set so rate limit is common to all routes', () => {
+
+  const defaultRate = { limit: 10, window: 60 };
+
+  const server = new Hapi.Server();
+
+  server.connection({ port: 80 });
+
+  server.register([
+    require('inject-then'),
+    require('./authentication'),
+    {
+      register: require('../lib'),
+      options: {
+        defaultRate: () => defaultRate,
+        redisClient,
+        rateLimitKey: (request) => request.auth.credentials.api_key,
+        rateLimitKeyPrefix: () => 'options-prefix',
+        overLimitError: (rate) => new RateLimitError(rate)
+      }
+    }
+  ], () => {});
+
+  server.route([{
+    method: 'POST',
+    path: '/default_test',
+    config: {
+      plugins: {
+        rateLimit: {
+          enabled: true
+        }
+      },
+      handler: (request, reply) => {
+        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      }
+    }
+  },
+  {
+    method: 'GET',
+    path: '/another_route',
+    config: {
+      plugins: {
+        rateLimit: {
+          enabled: true
+        }
+      },
+      handler: (request, reply) => {
+        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      }
+    }
+  }]);
+
+  before((done) => {
+    server.start(() => done());
+  });
+
+  after((done) => {
+    server.stop(() => done());
+  });
+
+  beforeEach(() => {
+    return redisClient.flushdb();
+  });
+
+  it('uses rateLimitKeyPrefix from options if no custom rateLimitKeyPrefix is registered for the route', () => {
+    return server.injectThen({
+      method: 'POST',
+      url: '/default_test',
+      credentials: { api_key: '123' }
+    })
+    .then((response) => {
+      expect(response.result.rate.limit).to.eql(defaultRate.limit);
+      expect(response.result.rate.window).to.eql(defaultRate.window);
+      return redisClient.getAsync('hapi-rate-limiter:options-prefix:123');
+    })
+    .then((reply) => {
+      expect(reply).to.equal('1');
+    });
+  });
+
+  it('has a single limit for all routes requested with the same credentials', () => {
+    return server.injectThen({
+      method: 'POST',
+      url: '/default_test',
+      credentials: { api_key: '123' }
+    })
+    .then((response) => {
+      expect(response.result.rate.remaining).to.eql(defaultRate.limit - 1);
+      return server.injectThen({
+        method: 'GET',
+        url: '/another_route',
+        credentials: { api_key: '123' }
+      });
+    })
+    .then((response) => {
+      expect(response.result.rate.remaining).to.eql(defaultRate.limit - 2);
     });
   });
 
