@@ -27,6 +27,7 @@ server.register([
   register: require('hapi-rate-limiter'),
   options: {
     defaultRate: (request) => defaultRate,
+    rateLimitKey: (request) => request.auth.credentials.apiKey,
     redisClient: RedisClient,
     overLimitError: (rate) => new Error(`Rate Limit Exceeded - try again in ${rate.window} seconds`)
   }
@@ -36,7 +37,9 @@ server.register([
 ```
 
 #### Options
-All options `(defaultRate, rateLimitKey, redisClient, overLimitError)` are required for the plugin to work properly.
+The following options are required for the plugin to work properly: `(defaultRate, rateLimitKey, redisClient, overLimitError)`.
+
+The `rateLimitKeyPrefix` option is optional and defaults to: `(request) => request.route.method + ':' + request.route.path;`.
 
 Rate-limiting is by default disabled on all routes, unless `enabled=true` in the route plugin [settings](#custom-rate).
 
@@ -52,7 +55,10 @@ Function that accepts a `Request` object and returns:
 This is used if there is no `rate` function defined in the route plugin [settings](#custom-rate).
 
 ##### `rateLimitKey`
-A function that returns a key for an given request. This can be any differentiating value in each request, such as an API Key, IP Address, etc
+A function that returns a key for a given request. This can be any differentiating value in each request, such as an API Key, IP Address, etc
+
+##### `rateLimitKeyPrefix`
+A function that returns a prefix (string) for a given request. The `rateLimitKeyPrefix` is combined with the `rateLimitKey` to look up the rate-limiting information for a given request. By default, the rate limits are enforced on a per route basis. If you want the rate limit to apply to all routes, then return a constant value from this function.
 
 ##### `redisClient`
 A promisified redis client
@@ -93,6 +99,8 @@ server.route([{
 To enable rate-limiting for a route, `enabled` must be `true` in the route plugin settings.
 
 `rate` can also be defined in these settings to set a custom rate. If this is not defined, `defaultRate` will be used.
+
+`rateLimitKey` and `rateLimitKeyPrefix` can also be defined in these settings to override the values set in the plugin options.
 
 #### Disable Rate-Limiting for route
 
