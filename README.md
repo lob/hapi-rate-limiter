@@ -23,14 +23,14 @@ const defaultRate = {
   window: 60
 };
 
-server.register([
+server.register({
   register: require('hapi-rate-limiter'),
   options: {
     defaultRate: (request) => defaultRate,
     redisClient: RedisClient,
     overLimitError: (rate) => new Error(`Rate Limit Exceeded - try again in ${rate.window} seconds`)
   }
-], (err) => {
+}, (err) => {
 
 });
 ```
