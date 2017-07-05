@@ -1,3 +1,9 @@
+### 2.1.0 (2017-7-5)
+
+##### New Features
+
+* **key:** add a rateLimitKeyPrefix option so that rate limits can be common across routes ([178b0762](https://github.com/lob/hapi-rate-limiter/commit/178b07626beb879b4bf100fdd0fcb20ab1a331d4))
+
 ## 2.0.0 (2017-2-21)
 
 ##### Chores
