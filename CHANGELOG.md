@@ -1,3 +1,9 @@
+#### 2.1.1 (2018-07-12)
+
+##### Bug Fixes
+
+* **dependencies:**  Update Hapi peer dependency to reflect reality. ([#29](https://github.com/lob/hapi-rate-limiter/pull/29)) ([a8793798](https://github.com/lob/hapi-rate-limiter/commit/a8793798c12405048e860c89c43eab9518ba2c1b))
+
 ### 2.1.0 (2017-7-5)
 
 ##### New Features
