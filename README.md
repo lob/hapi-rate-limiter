@@ -29,7 +29,8 @@ server.register({
     defaultRate: (request) => defaultRate,
     rateLimitKey: (request) => request.auth.credentials.apiKey,
     redisClient: RedisClient,
-    overLimitError: (rate) => new Error(`Rate Limit Exceeded - try again in ${rate.window} seconds`)
+    overLimitError: (rate) => new Error(`Rate Limit Exceeded - try again in ${rate.window} seconds`),
+    onRedisError: (err) => console.log(err)
   }
 }, (err) => {
 
@@ -65,6 +66,9 @@ A promisified redis client
 
 ##### `overLimitError`
 A function that is called when the rate limit is exceeded. It must return an error. It is called with an object `rate` that contains information about the current state of the request rate.
+
+##### `onRedisError`
+An optional function that is called when the call to the Redis client errors. It is called with the `err` from the Redis client.
 
 ## Managing Routes
 Settings for individual routes can be set while registering a route.

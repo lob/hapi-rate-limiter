@@ -6,6 +6,7 @@ const Bluebird        = require('bluebird');
 const createBoomError = require('create-boom-error');
 const Hapi            = require('hapi');
 const Redis           = require('redis');
+const Sinon           = require('sinon');
 Bluebird.promisifyAll(Redis.RedisClient.prototype);
 Bluebird.promisifyAll(Redis.Multi.prototype);
 
@@ -21,6 +22,7 @@ describe('plugin', () => {
   const shortLimitRate = { limit: 1, window: 60 };
   const shortWindowRate = { limit: 10, window: 1 };
   const defaultRate = { limit: 10, window: 60 };
+  let returnedRedisError;
 
   const server = new Hapi.Server();
 
@@ -35,7 +37,10 @@ describe('plugin', () => {
         defaultRate: () => defaultRate,
         redisClient,
         rateLimitKey: (request) => request.auth.credentials.api_key,
-        overLimitError: (rate) => new RateLimitError(rate)
+        overLimitError: (rate) => new RateLimitError(rate),
+        onRedisError: (err) => {
+          returnedRedisError = err;
+        }
       }
     }
   ], () => {});
@@ -153,6 +158,11 @@ describe('plugin', () => {
 
   beforeEach(() => {
     return redisClient.flushdb();
+  });
+
+  afterEach(() => {
+    returnedRedisError = undefined;
+    Sinon.restore();
   });
 
   it('counts number of requests made', () => {
@@ -364,6 +374,65 @@ describe('plugin', () => {
     })
     .then((response) => {
       expect(response.headers).to.not.contain.all.keys(['x-rate-limit-reset', 'x-rate-limit-limit', 'x-rate-limit-remaining']);
+    });
+  });
+
+  it('calls onRedisError if the Redis client errors', () => {
+    Sinon.stub(redisClient, 'evalshaAsync').returns(Bluebird.reject('SomeError'));
+
+    return server.injectThen({
+      method: 'POST',
+      url: '/default_test',
+      credentials: { api_key: '123' }
+    })
+    .then(() => {
+      expect(returnedRedisError).to.eql('SomeError');
+    });
+  });
+
+  it('continues the request even if onRedisError is not set', () => {
+    const testServer = new Hapi.Server();
+
+    testServer.connection({ port: 80 });
+
+    testServer.register([
+      require('inject-then'),
+      require('./authentication'),
+      {
+        register: require('../lib'),
+        options: {
+          defaultRate: () => ({ limit: 1, window: 60 }),
+          redisClient,
+          rateLimitKey: (request) => request.auth.credentials.api_key,
+          overLimitError: (rate) => new RateLimitError(rate)
+        }
+      }
+    ], () => {});
+
+    testServer.route([{
+      method: 'GET',
+      path: '/test',
+      config: {
+        plugins: {
+          rateLimit: {
+            enabled: true
+          }
+        },
+        handler: (request, reply) => {
+          reply('hello world');
+        }
+      }
+    }]);
+
+    Sinon.stub(redisClient, 'evalshaAsync').returns(Bluebird.reject('SomeError'));
+
+    return testServer.injectThen({
+      method: 'GET',
+      url: '/test',
+      credentials: { api_key: '123' }
+    })
+    .then((response) => {
+      expect(response.result).to.eql('hello world');
     });
   });
 
