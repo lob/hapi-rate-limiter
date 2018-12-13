@@ -1,3 +1,9 @@
+### 2.2.0 (2018-12-13)
+
+##### Bug Fixes
+
+* **redis:**  handle redis error and continue the request ([0b06f486](https://github.com/lob/hapi-rate-limiter/commit/0b06f486d717ab32d12b7bf61aa62d53352714e8))
+
 #### 2.1.1 (2018-07-12)
 
 ##### Bug Fixes
