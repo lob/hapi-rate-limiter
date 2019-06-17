@@ -1,3 +1,13 @@
+## 3.0.0 (2019-06-17)
+
+##### New Features
+
+* **timer:**  adds timer option and simplifies key option names ([#32](https://github.com/lob/hapi-rate-limiter/pull/32)) ([275786a5](https://github.com/lob/hapi-rate-limiter/commit/275786a5cfb31863f3ddbb4c055f58fc46489b7f))
+  * `rateLimitKey` is now named `key`
+  * `rateLimitKeyPrefix` is now named `keyPrefix`
+  * `timer` is a callback that is called with the elapsed milliseconds of
+    the rate limit operation
+
 ### 2.2.0 (2018-12-13)
 
 ##### Bug Fixes
