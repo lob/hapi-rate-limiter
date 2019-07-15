@@ -1,3 +1,9 @@
+#### 3.0.1 (2019-07-15)
+
+##### Bug Fixes
+
+* **timer:**  measures time taken more accurately ([#33](https://github.com/lob/hapi-rate-limiter/pull/33)) ([0f6131bf](https://github.com/lob/hapi-rate-limiter/commit/0f6131bfac8ff3533bd96533ddb7bcdc76f2655d))
+
 ## 3.0.0 (2019-06-17)
 
 ##### New Features
