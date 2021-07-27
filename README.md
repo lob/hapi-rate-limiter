@@ -8,6 +8,8 @@ const Bluebird = require('bluebird');
 const Hapi     = require('hapi');
 const Redis    = require('redis');
 
+// Note: Sadly, this package currently requires a promisified Redis client
+// Luckily, any package appending *Async methods should work, not just Bluebird
 Bluebird.promisifyAll(Redis.RedisClient.prototype);
 Bluebird.promisifyAll(Redis.Multi.prototype);
 
