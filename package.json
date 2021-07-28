@@ -32,7 +32,7 @@
     "eslint": "^1.10.3",
     "eslint-config-lob": "^2.2.0",
     "generate-changelog": "^1.0.2",
-    "hapi": "^14.2.0",
+    "hapi": "^15.2.0",
     "hapi-auth-basic": "^4.2.0",
     "inject-then": "^2.0.6",
     "istanbul": "^0.4.4",
