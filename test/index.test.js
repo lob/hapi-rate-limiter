@@ -127,7 +127,9 @@ describe('plugin', () => {
     method: 'POST',
     path: '/auth_enabled_test',
     config: {
-      auth: 'basic',
+      auth: {
+        strategies: ['basic']
+      },
       handler: (request, reply) => {
         reply({ rate: request.plugins['hapi-rate-limiter'].rate });
       }
