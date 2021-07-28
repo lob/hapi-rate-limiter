@@ -15,7 +15,8 @@ jobs:
 
     services:
       redis:
-        image: redis
+        image: redis:3.2-alpine
+        # defaults to localhost:6379
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s
