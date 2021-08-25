@@ -3,19 +3,15 @@
 const HapiAuthBasic = require('hapi-auth-basic');
 
 exports.register = (server, options, next) => {
+  server.register(HapiAuthBasic);
 
-  server.register(HapiAuthBasic, () => {
-
-    server.auth.strategy('basic', 'basic', false, {
-      validateFunc: (request, username, password, callback) => {
-        callback(null, username === 'lob', {});
-      }
-    });
-
+  server.auth.strategy('basic', 'basic', false, {
+    validateFunc: (request, username, password, callback) => {
+      callback(null, username === 'lob', {});
+    }
   });
 
-  next();
-
+  return next();
 };
 
 exports.register.attributes = {

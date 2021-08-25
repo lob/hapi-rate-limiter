@@ -4,9 +4,14 @@ const expect = require('chai').expect;
 
 const Bluebird        = require('bluebird');
 const createBoomError = require('create-boom-error');
-const Hapi            = require('hapi');
+const hapi            = require('hapi');
 const Redis           = require('redis');
 const Sinon           = require('sinon');
+const InjectThen      = require('inject-then');
+
+const Authentication  = require('./authentication.js');
+const HapiRateLimiter = require('../lib');
+
 Bluebird.promisifyAll(Redis.RedisClient.prototype);
 Bluebird.promisifyAll(Redis.Multi.prototype);
 
@@ -15,7 +20,11 @@ const redisClient = Redis.createClient({
   host: 'localhost'
 });
 
-const RateLimitError = createBoomError('RateLimitExceeded', 429, (rate) => `Rate limit exceeded. Please wait ${rate.window} seconds and try your request again.`);
+const RateLimitError = createBoomError(
+  'RateLimitExceeded',
+  429,
+  (rate) => `Rate limit exceeded. Please wait ${rate.window} seconds and try your request again.`
+);
 
 describe('plugin', () => {
 
@@ -25,15 +34,15 @@ describe('plugin', () => {
   let returnedRedisError;
   let time;
 
-  const server = new Hapi.Server();
+  const server = new hapi.Server();
 
   server.connection({ port: 80 });
 
   server.register([
-    require('inject-then'),
-    require('./authentication'),
+    InjectThen,
+    Authentication,
     {
-      register: require('../lib'),
+      register: HapiRateLimiter,
       options: {
         defaultRate: () => defaultRate,
         redisClient,
@@ -411,15 +420,15 @@ describe('plugin', () => {
   });
 
   it('continues the request even if onRedisError is not set', () => {
-    const testServer = new Hapi.Server();
+    const testServer = new hapi.Server();
 
     testServer.connection({ port: 80 });
 
     testServer.register([
-      require('inject-then'),
-      require('./authentication'),
+      InjectThen,
+      Authentication,
       {
-        register: require('../lib'),
+        register: HapiRateLimiter,
         options: {
           defaultRate: () => ({ limit: 1, window: 60 }),
           redisClient,
@@ -462,15 +471,15 @@ describe('register plugin with keyPrefix option set so rate limit is common to a
 
   const defaultRate = { limit: 10, window: 60 };
 
-  const server = new Hapi.Server();
+  const server = new hapi.Server();
 
   server.connection({ port: 80 });
 
   server.register([
-    require('inject-then'),
-    require('./authentication'),
+    InjectThen,
+    Authentication,
     {
-      register: require('../lib'),
+      register: HapiRateLimiter,
       options: {
         defaultRate: () => defaultRate,
         redisClient,
