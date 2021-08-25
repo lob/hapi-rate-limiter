@@ -16,8 +16,8 @@ Bluebird.promisifyAll(Redis.RedisClient.prototype);
 Bluebird.promisifyAll(Redis.Multi.prototype);
 
 const redisClient = Redis.createClient({
-  port: '6379',
-  host: 'localhost'
+  port: process.env.REDIS_PORT || '6379',
+  host: process.env.REDIS_HOST || 'localhost'
 });
 
 const RateLimitError = createBoomError(
