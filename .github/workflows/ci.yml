@@ -26,6 +26,7 @@ jobs:
     strategy:
       matrix:
         node-version: [12, 14, 16]
+      fail-fast: false
 
     steps:
       - name: Checkout repository
@@ -37,7 +38,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
-        run: npm install --silent ; echo $?
+        run: npm install --silent
 
       - name: Run tests
         run: npm test
