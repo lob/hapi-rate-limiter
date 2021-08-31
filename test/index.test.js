@@ -435,7 +435,7 @@ describe('plugin', async () => {
           overLimitError: (rate) => new RateLimitError(rate)
         }
       }
-    ], () => {});
+    ]);
 
     testServer.route([{
       method: 'GET',
