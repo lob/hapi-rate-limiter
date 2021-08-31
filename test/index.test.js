@@ -7,7 +7,6 @@ const createBoomError = require('create-boom-error');
 const hapi            = require('hapi');
 const Redis           = require('redis');
 const Sinon           = require('sinon');
-const InjectThen      = require('inject-then');
 
 const Authentication  = require('./authentication.js');
 const HapiRateLimiter = require('../lib');
@@ -30,7 +29,7 @@ const RateLimitError = createBoomError(
   (rate) => `Rate limit exceeded. Please wait ${rate.window} seconds and try your request again.`
 );
 
-describe('plugin', () => {
+describe('plugin', async () => {
 
   const shortLimitRate = { limit: 1, window: 60 };
   const shortWindowRate = { limit: 10, window: 1 };
@@ -38,29 +37,25 @@ describe('plugin', () => {
   let returnedRedisError;
   let time;
 
-  const server = new hapi.Server();
+  const server = new hapi.Server({ port: 0 });
 
-  server.connection({ port: 80 });
-
-  server.register([
-    InjectThen,
+  await server.register([
     Authentication,
-    {
-      register: HapiRateLimiter,
-      options: {
-        defaultRate: () => defaultRate,
-        redisClient,
-        key: (request) => request.auth.credentials.api_key,
-        overLimitError: (rate) => new RateLimitError(rate),
-        onRedisError: (err) => {
-          returnedRedisError = err;
-        },
-        timer: (ms) => {
-          time = ms;
-        }
+  {
+    plugin: HapiRateLimiter,
+    options: {
+      defaultRate: () => defaultRate,
+      redisClient,
+      key: (request) => request.auth.credentials.api_key,
+      overLimitError: (rate) => new RateLimitError(rate),
+      onRedisError: (err) => {
+        returnedRedisError = err;
+      },
+      timer: (ms) => {
+        time = ms;
       }
     }
-  ], () => {});
+  }]);
 
   server.route([{
     method: 'POST',
@@ -71,8 +66,8 @@ describe('plugin', () => {
           enabled: true
         }
       },
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   },
@@ -86,8 +81,8 @@ describe('plugin', () => {
           rate: () => shortLimitRate
         }
       },
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   },
@@ -101,8 +96,8 @@ describe('plugin', () => {
           rate: () => shortWindowRate
         }
       },
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   },
@@ -116,8 +111,8 @@ describe('plugin', () => {
           key: () => 'custom'
         }
       },
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   },
@@ -131,8 +126,8 @@ describe('plugin', () => {
           keyPrefix: () => 'custom-prefix'
         }
       },
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   },
@@ -143,8 +138,8 @@ describe('plugin', () => {
       auth: {
         strategies: ['basic']
       },
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   },
@@ -152,8 +147,8 @@ describe('plugin', () => {
     method: 'POST',
     path: '/disabled_test',
     config: {
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   },
@@ -161,18 +156,20 @@ describe('plugin', () => {
     method: 'PUT',
     path: '/put_test',
     config: {
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   }]);
 
-  before((done) => {
-    server.start(() => done());
+  before(async () => {
+    // Normally we don't listen on ports in these tests. However, this package has an
+    // `onPreStart` stage that we need to honor. So, it listens on a goofy port number.
+    await server.start();
   });
 
-  after((done) => {
-    server.stop(() => done());
+  after(async () => {
+    await server.stop();
   });
 
   beforeEach(() => {
@@ -185,19 +182,18 @@ describe('plugin', () => {
     Sinon.restore();
   });
 
-  it('counts number of requests made', () => {
-    return server.injectThen({
+  it('counts number of requests made', async () => {
+    const response = await server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
-    })
-    .then((response) => {
-      expect(response.result.rate.remaining).to.eql(defaultRate.limit - 1);
     });
+
+    expect(response.result.rate.remaining).to.eql(defaultRate.limit - 1);
   });
 
   it('ignores everything except GET, POST, and DELETE requests', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'PUT',
       url: '/put_test',
       credentials: { api_key: '123' }
@@ -208,7 +204,7 @@ describe('plugin', () => {
   });
 
   it('ignores rate-limit disabled routes', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/disabled_test',
       credentials: { api_key: '123' }
@@ -219,7 +215,7 @@ describe('plugin', () => {
   });
 
   it('sets custom rate given', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/short_limit_test',
       credentials: { api_key: '123' }
@@ -231,7 +227,7 @@ describe('plugin', () => {
   });
 
   it('sets default rate if none provided', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
@@ -243,7 +239,7 @@ describe('plugin', () => {
   });
 
   it('uses custom key function if provided', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/custom_rate_limit_key_test',
       credentials: { api_key: '123' }
@@ -253,13 +249,13 @@ describe('plugin', () => {
       expect(response.result.rate.window).to.eql(defaultRate.window);
       return redisClient.getAsync('hapi-rate-limiter:post:/custom_rate_limit_key_test:custom');
     })
-    .then((reply) => {
-      expect(reply).to.equal('1');
+    .then((result) => {
+      expect(result).to.equal('1');
     });
   });
 
   it('uses default key if none provided', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
@@ -269,13 +265,13 @@ describe('plugin', () => {
       expect(response.result.rate.window).to.eql(defaultRate.window);
       return redisClient.getAsync('hapi-rate-limiter:post:/default_test:123');
     })
-    .then((reply) => {
-      expect(reply).to.equal('1');
+    .then((result) => {
+      expect(result).to.equal('1');
     });
   });
 
   it('uses custom keyPrefix function if provided', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/custom_rate_limit_key_prefix_test',
       credentials: { api_key: '123' }
@@ -285,13 +281,13 @@ describe('plugin', () => {
       expect(response.result.rate.window).to.eql(defaultRate.window);
       return redisClient.getAsync('hapi-rate-limiter:custom-prefix:123');
     })
-    .then((reply) => {
-      expect(reply).to.equal('1');
+    .then((result) => {
+      expect(result).to.equal('1');
     });
   });
 
   it('uses default keyPrefix if no custom keyPrefix is registered for the route and no keyPrefix is set in the plugin options', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
@@ -301,19 +297,19 @@ describe('plugin', () => {
       expect(response.result.rate.window).to.eql(defaultRate.window);
       return redisClient.getAsync('hapi-rate-limiter:post:/default_test:123');
     })
-    .then((reply) => {
-      expect(reply).to.equal('1');
+    .then((result) => {
+      expect(result).to.equal('1');
     });
   });
 
   it('blocks requests over limit', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/short_limit_test',
       credentials: { api_key: '123' }
     })
     .then(() => {
-      return server.injectThen({
+      return server.inject({
         method: 'POST',
         url: '/short_limit_test',
         credentials: { api_key: '123' }
@@ -329,7 +325,7 @@ describe('plugin', () => {
     const now = Math.floor(new Date() / 1000);
     return Bluebird.resolve()
     .then(() => {
-      return server.injectThen({
+      return server.inject({
         method: 'POST',
         url: '/short_window_test',
         credentials: { api_key: '123' }
@@ -341,7 +337,7 @@ describe('plugin', () => {
     })
     .delay(shortWindowRate.window * 1000)
     .then(() => {
-      return server.injectThen({
+      return server.inject({
         method: 'POST',
         url: '/short_window_test',
         credentials: { api_key: '123' }
@@ -353,7 +349,7 @@ describe('plugin', () => {
   });
 
   it('has different counts for different api_keys', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '456' }
@@ -362,7 +358,7 @@ describe('plugin', () => {
       expect(response.result.rate.remaining).to.eql(defaultRate.limit - 1);
     })
     .then(() => {
-      return server.injectThen({
+      return server.inject({
         method: 'POST',
         url: '/default_test',
         payload: {
@@ -377,7 +373,7 @@ describe('plugin', () => {
   });
 
   it('sets the appropriate headers', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
@@ -388,7 +384,7 @@ describe('plugin', () => {
   });
 
   it('ignores requests with invalid auth credentials', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/auth_enabled_test'
     })
@@ -401,7 +397,7 @@ describe('plugin', () => {
     const err = new Error('SomeError');
     Sinon.stub(redisClient, 'evalshaAsync').rejects(new Error('SomeError')).usingPromise(Bluebird.Promise);
 
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
@@ -412,7 +408,7 @@ describe('plugin', () => {
   });
 
   it('calls timer with the number of milliseconds the rate limit operation took', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
@@ -424,15 +420,12 @@ describe('plugin', () => {
   });
 
   it('continues the request even if onRedisError is not set', () => {
-    const testServer = new hapi.Server();
-
-    testServer.connection({ port: 80 });
+    const testServer = new hapi.Server({ port: 0 });
 
     testServer.register([
-      InjectThen,
       Authentication,
       {
-        register: HapiRateLimiter,
+        plugin: HapiRateLimiter,
         options: {
           defaultRate: () => ({ limit: 1, window: 60 }),
           redisClient,
@@ -451,15 +444,15 @@ describe('plugin', () => {
             enabled: true
           }
         },
-        handler: (request, reply) => {
-          reply('hello world');
+        handler: (request) => {
+          return 'hello world';
         }
       }
     }]);
 
     Sinon.stub(redisClient, 'evalshaAsync').returns(Bluebird.reject('SomeError'));
 
-    return testServer.injectThen({
+    return testServer.inject({
       method: 'GET',
       url: '/test',
       credentials: { api_key: '123' }
@@ -468,22 +461,18 @@ describe('plugin', () => {
       expect(response.result).to.eql('hello world');
     });
   });
-
 });
 
-describe('register plugin with keyPrefix option set so rate limit is common to all routes', () => {
+describe('register plugin with keyPrefix option set so rate limit is common to all routes', async () => {
 
   const defaultRate = { limit: 10, window: 60 };
 
-  const server = new hapi.Server();
+  const server = new hapi.Server({ port: 0 });
 
-  server.connection({ port: 80 });
-
-  server.register([
-    InjectThen,
+  await server.register([
     Authentication,
     {
-      register: HapiRateLimiter,
+      plugin: HapiRateLimiter,
       options: {
         defaultRate: () => defaultRate,
         redisClient,
@@ -492,7 +481,7 @@ describe('register plugin with keyPrefix option set so rate limit is common to a
         overLimitError: (rate) => new RateLimitError(rate)
       }
     }
-  ], () => {});
+  ]);
 
   server.route([{
     method: 'POST',
@@ -503,8 +492,8 @@ describe('register plugin with keyPrefix option set so rate limit is common to a
           enabled: true
         }
       },
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   },
@@ -517,26 +506,26 @@ describe('register plugin with keyPrefix option set so rate limit is common to a
           enabled: true
         }
       },
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   }]);
 
-  before((done) => {
-    server.start(() => done());
+  before(async () => {
+    await server.start();
   });
 
-  after((done) => {
-    server.stop(() => done());
+  after(async () => {
+    await server.stop();
   });
 
-  beforeEach(() => {
-    return redisClient.flushdb();
+  beforeEach(async () => {
+    await redisClient.flushdb();
   });
 
   it('uses keyPrefix from options if no custom keyPrefix is registered for the route', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
@@ -546,20 +535,20 @@ describe('register plugin with keyPrefix option set so rate limit is common to a
       expect(response.result.rate.window).to.eql(defaultRate.window);
       return redisClient.getAsync('hapi-rate-limiter:options-prefix:123');
     })
-    .then((reply) => {
-      expect(reply).to.equal('1');
+    .then((result) => {
+      expect(result).to.equal('1');
     });
   });
 
   it('has a single limit for all routes requested with the same credentials', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
     })
     .then((response) => {
       expect(response.result.rate.remaining).to.eql(defaultRate.limit - 1);
-      return server.injectThen({
+      return server.inject({
         method: 'GET',
         url: '/another_route',
         credentials: { api_key: '123' }

@@ -2,18 +2,14 @@
 
 const HapiAuthBasic = require('hapi-auth-basic');
 
-exports.register = (server, options, next) => {
-  server.register(HapiAuthBasic);
+exports.register = async (server) => {
+  await server.register(HapiAuthBasic);
 
-  server.auth.strategy('basic', 'basic', false, {
-    validateFunc: (request, username, password, callback) => {
-      callback(null, username === 'lob', {});
+  server.auth.strategy('basic', 'basic', {
+    validate: async (request, username, password, h) => {
+      return { isValid: username === 'lob' };
     }
   });
-
-  return next();
 };
 
-exports.register.attributes = {
-  name: 'authentication'
-};
+exports.name = 'faux-auth';
