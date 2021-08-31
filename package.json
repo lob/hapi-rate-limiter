@@ -4,9 +4,9 @@
   "description": "Hapi-plugin to handle rate-limiting",
   "main": "lib/index.js",
   "scripts": {
-    "test": "NODE_ENV=test istanbul cover _mocha -- test --recursive --timeout 30000",
+    "test": "NODE_ENV=test nyc _mocha -- test --recursive --timeout 30000",
     "lint": "eslint .",
-    "enforce": "istanbul check-coverage --statement 100 --branch 100 --function 100 --lines 100",
+    "enforce": "nyc check-coverage --statement 100 --branch 100 --function 100 --lines 100",
     "release:patch": "changelog -p && git add CHANGELOG.md && git commit -m 'updated CHANGELOG.md' && npm version patch && git push origin && git push origin --tags",
     "release:minor": "changelog -m && git add CHANGELOG.md && git commit -m 'updated CHANGELOG.md' && npm version minor && git push origin && git push origin --tags",
     "release:major": "changelog -M && git add CHANGELOG.md && git commit -m 'updated CHANGELOG.md' && npm version major && git push origin && git push origin --tags"
@@ -27,21 +27,20 @@
   "dependencies": {},
   "devDependencies": {
     "bluebird": "^3.4.0",
-    "chai": "^3.5.0",
+    "chai": "^4.3.4",
     "create-boom-error": "^0.1.0",
-    "eslint": "^1.10.3",
-    "eslint-config-lob": "^2.2.0",
+    "eslint": "^7.32.0",
+    "eslint-config-lob": "^5.2.0",
     "generate-changelog": "^1.0.2",
-    "hapi": "^16.7.0",
-    "hapi-auth-basic": "^4.2.0",
-    "inject-then": "^2.0.6",
-    "istanbul": "^0.4.4",
-    "mocha": "^2.5.3",
-    "redis": "^2.6.2",
-    "sinon": "^7.2.0"
+    "hapi": "^17.8.5",
+    "hapi-auth-basic": "^5.0.0",
+    "mocha": "^9.1.1",
+    "nyc": "^15.1.0",
+    "redis": "^3.1.2",
+    "sinon": "^11.1.2"
   },
   "peerDependencies": {
-    "hapi": ">=11 <17",
-    "redis": "^2.6.2"
+    "hapi": ">=17",
+    "redis": "^3.0.0"
   }
 }

@@ -7,7 +7,6 @@ const createBoomError = require('create-boom-error');
 const hapi            = require('hapi');
 const Redis           = require('redis');
 const Sinon           = require('sinon');
-const InjectThen      = require('inject-then');
 
 const Authentication  = require('./authentication.js');
 const HapiRateLimiter = require('../lib');
@@ -20,13 +19,17 @@ const redisClient = Redis.createClient({
   host: process.env.REDIS_HOST || 'localhost'
 });
 
+after(() => {
+  redisClient.quit();
+});
+
 const RateLimitError = createBoomError(
   'RateLimitExceeded',
   429,
   (rate) => `Rate limit exceeded. Please wait ${rate.window} seconds and try your request again.`
 );
 
-describe('plugin', () => {
+describe('plugin', async () => {
 
   const shortLimitRate = { limit: 1, window: 60 };
   const shortWindowRate = { limit: 10, window: 1 };
@@ -34,15 +37,12 @@ describe('plugin', () => {
   let returnedRedisError;
   let time;
 
-  const server = new hapi.Server();
+  const server = new hapi.Server({ port: 0 });
 
-  server.connection({ port: 80 });
-
-  server.register([
-    InjectThen,
+  await server.register([
     Authentication,
     {
-      register: HapiRateLimiter,
+      plugin: HapiRateLimiter,
       options: {
         defaultRate: () => defaultRate,
         redisClient,
@@ -55,8 +55,7 @@ describe('plugin', () => {
           time = ms;
         }
       }
-    }
-  ], () => {});
+    }]);
 
   server.route([{
     method: 'POST',
@@ -67,8 +66,8 @@ describe('plugin', () => {
           enabled: true
         }
       },
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   },
@@ -82,8 +81,8 @@ describe('plugin', () => {
           rate: () => shortLimitRate
         }
       },
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   },
@@ -97,8 +96,8 @@ describe('plugin', () => {
           rate: () => shortWindowRate
         }
       },
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   },
@@ -112,8 +111,8 @@ describe('plugin', () => {
           key: () => 'custom'
         }
       },
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   },
@@ -127,8 +126,8 @@ describe('plugin', () => {
           keyPrefix: () => 'custom-prefix'
         }
       },
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   },
@@ -139,8 +138,8 @@ describe('plugin', () => {
       auth: {
         strategies: ['basic']
       },
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   },
@@ -148,8 +147,8 @@ describe('plugin', () => {
     method: 'POST',
     path: '/disabled_test',
     config: {
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   },
@@ -157,22 +156,26 @@ describe('plugin', () => {
     method: 'PUT',
     path: '/put_test',
     config: {
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   }]);
 
-  before((done) => {
-    server.start(() => done());
+  before(async () => {
+    // Normally we don't listen on ports in unit tests. However, this package has an
+    // `onPreStart` stage that we need to honor. So, it listens on `0`, meaning a random
+    // high port. Note that previously the server.start() code listened on port 80 and
+    // would fail silently.
+    await server.start();
   });
 
-  after((done) => {
-    server.stop(() => done());
+  after(async () => {
+    await server.stop();
   });
 
-  beforeEach(() => {
-    return redisClient.flushdb();
+  beforeEach(async () => {
+    await redisClient.flushdb();
   });
 
   afterEach(() => {
@@ -181,254 +184,250 @@ describe('plugin', () => {
     Sinon.restore();
   });
 
-  it('counts number of requests made', () => {
-    return server.injectThen({
+  it('counts number of requests made', async () => {
+    const response = await server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
-    })
-    .then((response) => {
-      expect(response.result.rate.remaining).to.eql(defaultRate.limit - 1);
     });
+
+    expect(response.result.rate.remaining).to.eql(defaultRate.limit - 1);
   });
 
   it('ignores everything except GET, POST, and DELETE requests', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'PUT',
       url: '/put_test',
       credentials: { api_key: '123' }
     })
-    .then((response) => {
-      expect(response.result.rate).to.not.exist;
-    });
+      .then((response) => {
+        expect(response.result.rate).to.not.exist;
+      });
   });
 
   it('ignores rate-limit disabled routes', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/disabled_test',
       credentials: { api_key: '123' }
     })
-    .then((response) => {
-      expect(response.result.rate).to.not.exist;
-    });
+      .then((response) => {
+        expect(response.result.rate).to.not.exist;
+      });
   });
 
   it('sets custom rate given', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/short_limit_test',
       credentials: { api_key: '123' }
     })
-    .then((response) => {
-      expect(response.result.rate.limit).to.eql(shortLimitRate.limit);
-      expect(response.result.rate.window).to.eql(shortLimitRate.window);
-    });
+      .then((response) => {
+        expect(response.result.rate.limit).to.eql(shortLimitRate.limit);
+        expect(response.result.rate.window).to.eql(shortLimitRate.window);
+      });
   });
 
   it('sets default rate if none provided', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
     })
-    .then((response) => {
-      expect(response.result.rate.limit).to.eql(defaultRate.limit);
-      expect(response.result.rate.window).to.eql(defaultRate.window);
-    });
+      .then((response) => {
+        expect(response.result.rate.limit).to.eql(defaultRate.limit);
+        expect(response.result.rate.window).to.eql(defaultRate.window);
+      });
   });
 
   it('uses custom key function if provided', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/custom_rate_limit_key_test',
       credentials: { api_key: '123' }
     })
-    .then((response) => {
-      expect(response.result.rate.limit).to.eql(defaultRate.limit);
-      expect(response.result.rate.window).to.eql(defaultRate.window);
-      return redisClient.getAsync('hapi-rate-limiter:post:/custom_rate_limit_key_test:custom');
-    })
-    .then((reply) => {
-      expect(reply).to.equal('1');
-    });
+      .then((response) => {
+        expect(response.result.rate.limit).to.eql(defaultRate.limit);
+        expect(response.result.rate.window).to.eql(defaultRate.window);
+        return redisClient.getAsync('hapi-rate-limiter:post:/custom_rate_limit_key_test:custom');
+      })
+      .then((result) => {
+        expect(result).to.equal('1');
+      });
   });
 
   it('uses default key if none provided', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
     })
-    .then((response) => {
-      expect(response.result.rate.limit).to.eql(defaultRate.limit);
-      expect(response.result.rate.window).to.eql(defaultRate.window);
-      return redisClient.getAsync('hapi-rate-limiter:post:/default_test:123');
-    })
-    .then((reply) => {
-      expect(reply).to.equal('1');
-    });
+      .then((response) => {
+        expect(response.result.rate.limit).to.eql(defaultRate.limit);
+        expect(response.result.rate.window).to.eql(defaultRate.window);
+        return redisClient.getAsync('hapi-rate-limiter:post:/default_test:123');
+      })
+      .then((result) => {
+        expect(result).to.equal('1');
+      });
   });
 
   it('uses custom keyPrefix function if provided', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/custom_rate_limit_key_prefix_test',
       credentials: { api_key: '123' }
     })
-    .then((response) => {
-      expect(response.result.rate.limit).to.eql(defaultRate.limit);
-      expect(response.result.rate.window).to.eql(defaultRate.window);
-      return redisClient.getAsync('hapi-rate-limiter:custom-prefix:123');
-    })
-    .then((reply) => {
-      expect(reply).to.equal('1');
-    });
+      .then((response) => {
+        expect(response.result.rate.limit).to.eql(defaultRate.limit);
+        expect(response.result.rate.window).to.eql(defaultRate.window);
+        return redisClient.getAsync('hapi-rate-limiter:custom-prefix:123');
+      })
+      .then((result) => {
+        expect(result).to.equal('1');
+      });
   });
 
   it('uses default keyPrefix if no custom keyPrefix is registered for the route and no keyPrefix is set in the plugin options', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
     })
-    .then((response) => {
-      expect(response.result.rate.limit).to.eql(defaultRate.limit);
-      expect(response.result.rate.window).to.eql(defaultRate.window);
-      return redisClient.getAsync('hapi-rate-limiter:post:/default_test:123');
-    })
-    .then((reply) => {
-      expect(reply).to.equal('1');
-    });
+      .then((response) => {
+        expect(response.result.rate.limit).to.eql(defaultRate.limit);
+        expect(response.result.rate.window).to.eql(defaultRate.window);
+        return redisClient.getAsync('hapi-rate-limiter:post:/default_test:123');
+      })
+      .then((result) => {
+        expect(result).to.equal('1');
+      });
   });
 
   it('blocks requests over limit', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/short_limit_test',
       credentials: { api_key: '123' }
     })
-    .then(() => {
-      return server.injectThen({
-        method: 'POST',
-        url: '/short_limit_test',
-        credentials: { api_key: '123' }
+      .then(() => {
+        return server.inject({
+          method: 'POST',
+          url: '/short_limit_test',
+          credentials: { api_key: '123' }
+        });
+      })
+      .then((response) => {
+        expect(response.headers).to.contain.all.keys(['x-rate-limit-reset', 'x-rate-limit-limit', 'x-rate-limit-remaining']);
+        expect(response.statusCode).to.eql(429);
       });
-    })
-    .then((response) => {
-      expect(response.headers).to.contain.all.keys(['x-rate-limit-reset', 'x-rate-limit-limit', 'x-rate-limit-remaining']);
-      expect(response.statusCode).to.eql(429);
-    });
   });
 
   it('resets remaining value after window timeout', () => {
     const now = Math.floor(new Date() / 1000);
     return Bluebird.resolve()
-    .then(() => {
-      return server.injectThen({
-        method: 'POST',
-        url: '/short_window_test',
-        credentials: { api_key: '123' }
+      .then(() => {
+        return server.inject({
+          method: 'POST',
+          url: '/short_window_test',
+          credentials: { api_key: '123' }
+        });
+      })
+      .then((response) => {
+        expect(response.result.rate.reset).to.eql(now + shortWindowRate.window);
+        expect(response.result.rate.remaining).to.eql(shortWindowRate.limit - 1);
+      })
+      .delay(shortWindowRate.window * 1000)
+      .then(() => {
+        return server.inject({
+          method: 'POST',
+          url: '/short_window_test',
+          credentials: { api_key: '123' }
+        });
+      })
+      .then((response) => {
+        expect(response.result.rate.remaining).to.eql(shortWindowRate.limit - 1);
       });
-    })
-    .then((response) => {
-      expect(response.result.rate.reset).to.eql(now + shortWindowRate.window);
-      expect(response.result.rate.remaining).to.eql(shortWindowRate.limit - 1);
-    })
-    .delay(shortWindowRate.window * 1000)
-    .then(() => {
-      return server.injectThen({
-        method: 'POST',
-        url: '/short_window_test',
-        credentials: { api_key: '123' }
-      });
-    })
-    .then((response) => {
-      expect(response.result.rate.remaining).to.eql(shortWindowRate.limit - 1);
-    });
   });
 
   it('has different counts for different api_keys', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '456' }
     })
-    .then((response) => {
-      expect(response.result.rate.remaining).to.eql(defaultRate.limit - 1);
-    })
-    .then(() => {
-      return server.injectThen({
-        method: 'POST',
-        url: '/default_test',
-        payload: {
-          loaded: false
-        },
-        credentials: { api_key: '789' }
+      .then((response) => {
+        expect(response.result.rate.remaining).to.eql(defaultRate.limit - 1);
+      })
+      .then(() => {
+        return server.inject({
+          method: 'POST',
+          url: '/default_test',
+          payload: {
+            loaded: false
+          },
+          credentials: { api_key: '789' }
+        });
+      })
+      .then((response) => {
+        expect(response.result.rate.remaining).to.eql(defaultRate.limit - 1);
       });
-    })
-    .then((response) => {
-      expect(response.result.rate.remaining).to.eql(defaultRate.limit - 1);
-    });
   });
 
   it('sets the appropriate headers', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
     })
-    .then((response) => {
-      expect(response.headers).to.contain.all.keys(['x-rate-limit-reset', 'x-rate-limit-limit', 'x-rate-limit-remaining']);
-    });
+      .then((response) => {
+        expect(response.headers).to.contain.all.keys(['x-rate-limit-reset', 'x-rate-limit-limit', 'x-rate-limit-remaining']);
+      });
   });
 
   it('ignores requests with invalid auth credentials', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/auth_enabled_test'
     })
-    .then((response) => {
-      expect(response.headers).to.not.contain.all.keys(['x-rate-limit-reset', 'x-rate-limit-limit', 'x-rate-limit-remaining']);
-    });
+      .then((response) => {
+        expect(response.headers).to.not.contain.all.keys(['x-rate-limit-reset', 'x-rate-limit-limit', 'x-rate-limit-remaining']);
+      });
   });
 
   it('calls onRedisError if the Redis client errors', () => {
     const err = new Error('SomeError');
     Sinon.stub(redisClient, 'evalshaAsync').rejects(new Error('SomeError')).usingPromise(Bluebird.Promise);
 
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
     })
-    .then(() => {
-      expect(returnedRedisError).to.eql(err);
-    });
+      .then(() => {
+        expect(returnedRedisError.message).to.eql(err.message);
+      });
   });
 
   it('calls timer with the number of milliseconds the rate limit operation took', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
     })
-    .then(() => {
-      expect(time).to.be.greaterThan(0);
-      expect(time).to.be.lessThan(20);
-    });
+      .then(() => {
+        expect(time).to.be.greaterThan(0);
+        expect(time).to.be.lessThan(20);
+      });
   });
 
   it('continues the request even if onRedisError is not set', () => {
-    const testServer = new hapi.Server();
-
-    testServer.connection({ port: 80 });
+    const testServer = new hapi.Server({ port: 0 });
 
     testServer.register([
-      InjectThen,
       Authentication,
       {
-        register: HapiRateLimiter,
+        plugin: HapiRateLimiter,
         options: {
           defaultRate: () => ({ limit: 1, window: 60 }),
           redisClient,
@@ -436,7 +435,7 @@ describe('plugin', () => {
           overLimitError: (rate) => new RateLimitError(rate)
         }
       }
-    ], () => {});
+    ]);
 
     testServer.route([{
       method: 'GET',
@@ -447,39 +446,36 @@ describe('plugin', () => {
             enabled: true
           }
         },
-        handler: (request, reply) => {
-          reply('hello world');
+        handler: () => {
+          return 'hello world';
         }
       }
     }]);
 
     Sinon.stub(redisClient, 'evalshaAsync').returns(Bluebird.reject('SomeError'));
 
-    return testServer.injectThen({
+    return testServer.inject({
       method: 'GET',
       url: '/test',
       credentials: { api_key: '123' }
     })
-    .then((response) => {
-      expect(response.result).to.eql('hello world');
-    });
+      .then((response) => {
+        expect(response.result).to.eql('hello world');
+      });
   });
 
 });
 
-describe('register plugin with keyPrefix option set so rate limit is common to all routes', () => {
+describe('register plugin with keyPrefix option set so rate limit is common to all routes', async () => {
 
   const defaultRate = { limit: 10, window: 60 };
 
-  const server = new hapi.Server();
+  const server = new hapi.Server({ port: 0 });
 
-  server.connection({ port: 80 });
-
-  server.register([
-    InjectThen,
+  await server.register([
     Authentication,
     {
-      register: HapiRateLimiter,
+      plugin: HapiRateLimiter,
       options: {
         defaultRate: () => defaultRate,
         redisClient,
@@ -488,7 +484,7 @@ describe('register plugin with keyPrefix option set so rate limit is common to a
         overLimitError: (rate) => new RateLimitError(rate)
       }
     }
-  ], () => {});
+  ]);
 
   server.route([{
     method: 'POST',
@@ -499,8 +495,8 @@ describe('register plugin with keyPrefix option set so rate limit is common to a
           enabled: true
         }
       },
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   },
@@ -513,57 +509,57 @@ describe('register plugin with keyPrefix option set so rate limit is common to a
           enabled: true
         }
       },
-      handler: (request, reply) => {
-        reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
       }
     }
   }]);
 
-  before((done) => {
-    server.start(() => done());
+  before(async () => {
+    await server.start();
   });
 
-  after((done) => {
-    server.stop(() => done());
+  after(async () => {
+    await server.stop();
   });
 
-  beforeEach(() => {
-    return redisClient.flushdb();
+  beforeEach(async () => {
+    await redisClient.flushdb();
   });
 
   it('uses keyPrefix from options if no custom keyPrefix is registered for the route', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
     })
-    .then((response) => {
-      expect(response.result.rate.limit).to.eql(defaultRate.limit);
-      expect(response.result.rate.window).to.eql(defaultRate.window);
-      return redisClient.getAsync('hapi-rate-limiter:options-prefix:123');
-    })
-    .then((reply) => {
-      expect(reply).to.equal('1');
-    });
+      .then((response) => {
+        expect(response.result.rate.limit).to.eql(defaultRate.limit);
+        expect(response.result.rate.window).to.eql(defaultRate.window);
+        return redisClient.getAsync('hapi-rate-limiter:options-prefix:123');
+      })
+      .then((result) => {
+        expect(result).to.equal('1');
+      });
   });
 
   it('has a single limit for all routes requested with the same credentials', () => {
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/default_test',
       credentials: { api_key: '123' }
     })
-    .then((response) => {
-      expect(response.result.rate.remaining).to.eql(defaultRate.limit - 1);
-      return server.injectThen({
-        method: 'GET',
-        url: '/another_route',
-        credentials: { api_key: '123' }
+      .then((response) => {
+        expect(response.result.rate.remaining).to.eql(defaultRate.limit - 1);
+        return server.inject({
+          method: 'GET',
+          url: '/another_route',
+          credentials: { api_key: '123' }
+        });
+      })
+      .then((response) => {
+        expect(response.result.rate.remaining).to.eql(defaultRate.limit - 2);
       });
-    })
-    .then((response) => {
-      expect(response.result.rate.remaining).to.eql(defaultRate.limit - 2);
-    });
   });
 
 });

@@ -1,9 +1,10 @@
 # hapi-rate-limiter
-A [Hapi](http://hapijs.com/) plugin that enables rate-limiting for GET, POST, and DELETE requests. This plugin can be configured with custom
-rates on a route-by-route basis.
+A [Hapi](http://hapijs.com/) plugin that enables rate-limiting for GET, POST, and DELETE requests. This plugin can be configured with custom rates on a route-by-route basis.
+
+To use with Hapi >= v17 you should install `hapi-rate-limiter@v4`. To use with Hapi <= v16 you should install `hapi-rate-limiter@v3`.
 
 ## Register the plugin
-```
+```javascript
 const Bluebird = require('bluebird');
 const Hapi     = require('hapi');
 const Redis    = require('redis');
@@ -13,7 +14,7 @@ const Redis    = require('redis');
 Bluebird.promisifyAll(Redis.RedisClient.prototype);
 Bluebird.promisifyAll(Redis.Multi.prototype);
 
-const Server = new Hapi.Server();
+const Server = new Hapi.Server({ port: 80 });
 
 const RedisClient = Redis.createClient({
   port: '6379',
@@ -25,8 +26,8 @@ const defaultRate = {
   window: 60
 };
 
-server.register({
-  register: require('hapi-rate-limiter'),
+await server.register({
+  plugin: require('hapi-rate-limiter'),
   options: {
     defaultRate: (request) => defaultRate,
     key: (request) => request.auth.credentials.apiKey,
@@ -35,8 +36,6 @@ server.register({
     onRedisError: (err) => console.log(err),
     timer: (ms) => console.log(`Rate Limit Latency - ${ms} milliseconds`)
   }
-}, (err) => {
-
 });
 ```
 
@@ -83,7 +82,7 @@ Settings for individual routes can be set while registering a route.
 A custom `limit` and `window` can be registered for each route. The `rate` key
 accepts a `Request` object and returns a [rate](#defaultRate).
 
-```
+```javascript
 const customRate = {
   limit: 20,
   window: 30
@@ -99,8 +98,8 @@ server.route([{
         rate: (request) => customRate
       }
     },
-    handler: (request, reply) => {
-      reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+    handler: (request) => {
+      return { rate: request.plugins['hapi-rate-limiter'].rate };
     }
   }
 }]);
@@ -116,13 +115,13 @@ To enable rate-limiting for a route, `enabled` must be `true` in the route plugi
 
 If `plugins.rateLimit` is not defined, rate-limiting is disabled for that route.
 
-```
+```javascript
 server.route([{
   method: 'POST',
   path: '/disabled_route',
   config: {
-    handler: (request, reply) => {
-      reply({ rate: request.plugins['hapi-rate-limiter'].rate });
+    handler: (request) => {
+      return { rate: request.plugins['hapi-rate-limiter'].rate };
     }
   }
 }]);
