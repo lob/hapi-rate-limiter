@@ -27,21 +27,21 @@
   "dependencies": {},
   "devDependencies": {
     "bluebird": "^3.4.0",
-    "chai": "^3.5.0",
+    "chai": "^4.3.4",
     "create-boom-error": "^0.1.0",
-    "eslint": "^1.10.3",
-    "eslint-config-lob": "^2.2.0",
+    "eslint": "^7.32.0",
+    "eslint-config-lob": "^5.2.0",
     "generate-changelog": "^1.0.2",
     "hapi": "^16.7.0",
     "hapi-auth-basic": "^4.2.0",
     "inject-then": "^2.0.6",
     "istanbul": "^0.4.4",
-    "mocha": "^2.5.3",
-    "redis": "^2.6.2",
-    "sinon": "^7.2.0"
+    "mocha": "^9.1.1",
+    "redis": "^3.1.2",
+    "sinon": "^11.1.2"
   },
   "peerDependencies": {
-    "hapi": ">=11 <17",
-    "redis": "^2.6.2"
+    "hapi": ">=17",
+    "redis": "^3.0.0"
   }
 }

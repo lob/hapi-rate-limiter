@@ -20,6 +20,10 @@ const redisClient = Redis.createClient({
   host: process.env.REDIS_HOST || 'localhost'
 });
 
+after(() => {
+  redisClient.quit();
+});
+
 const RateLimitError = createBoomError(
   'RateLimitExceeded',
   429,
@@ -403,7 +407,7 @@ describe('plugin', () => {
       credentials: { api_key: '123' }
     })
     .then(() => {
-      expect(returnedRedisError).to.eql(err);
+      expect(returnedRedisError.message).to.eql(err.message);
     });
   });
 
