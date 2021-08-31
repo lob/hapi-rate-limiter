@@ -1,3 +1,9 @@
+## 4.0.0 (2021-08-31)
+
+##### Other Changes
+
+*  Hapi v17, Node.js v14, update deps, nyc coverage, modernize ([#36](https://github.com/lob/hapi-rate-limiter/pull/36)) ([150240af](https://github.com/lob/hapi-rate-limiter/commit/150240afeb371c5f629e87eb572f625ba94a789b))
+
 #### 3.0.2 (2021-07-28)
 
 #### 3.0.1 (2019-07-15)
