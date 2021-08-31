@@ -163,8 +163,10 @@ describe('plugin', async () => {
   }]);
 
   before(async () => {
-    // Normally we don't listen on ports in these tests. However, this package has an
-    // `onPreStart` stage that we need to honor. So, it listens on a goofy port number.
+    // Normally we don't listen on ports in unit tests. However, this package has an
+    // `onPreStart` stage that we need to honor. So, it listens on `0`, meaning a random
+    // high port. Note that previously the server.start() code listened on port 80 and
+    // would fail silently.
     await server.start();
   });
 
@@ -172,8 +174,8 @@ describe('plugin', async () => {
     await server.stop();
   });
 
-  beforeEach(() => {
-    return redisClient.flushdb();
+  beforeEach(async () => {
+    await redisClient.flushdb();
   });
 
   afterEach(() => {
