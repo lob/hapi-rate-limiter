@@ -6,7 +6,7 @@ To use with Hapi >= v17 you should install `hapi-rate-limiter@v4`. To use with H
 ## Register the plugin
 ```javascript
 const Bluebird = require('bluebird');
-const Hapi     = require('hapi');
+const Hapi     = require('@hapi/hapi');
 const Redis    = require('redis');
 
 // Note: Sadly, this package currently requires a promisified Redis client
