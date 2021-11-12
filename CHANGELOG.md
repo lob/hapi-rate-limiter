@@ -1,3 +1,9 @@
+## 6.0.0 (2021-11-12)
+
+##### Other Changes
+
+*  upgrade to hapi 20 ([#40](https://github.com/lob/hapi-rate-limiter/pull/40)) ([4c05b590](https://github.com/lob/hapi-rate-limiter/commit/4c05b590e382edfa7af3d7c182fa664216c1aecf))
+
 ## 5.0.0 (2021-10-01)
 
 ## 4.0.0 (2021-08-31)
