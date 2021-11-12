@@ -26,21 +26,21 @@
   "homepage": "https://github.com/lob/hapi-rate-limiter",
   "dependencies": {},
   "devDependencies": {
-    "@hapi/hapi": "^18.4.1",
+    "@hapi/hapi": "^20.2.1",
     "bluebird": "^3.4.0",
     "chai": "^4.3.4",
-    "create-boom-error": "^0.1.0",
+    "create-boom-error": "^1.0.0",
     "eslint": "^7.32.0",
     "eslint-config-lob": "^5.2.0",
     "generate-changelog": "^1.0.2",
-    "hapi-auth-basic": "^5.0.0",
+    "@hapi/basic": "^5.0.0",
     "mocha": "^9.1.1",
     "nyc": "^15.1.0",
     "redis": "^3.1.2",
     "sinon": "^11.1.2"
   },
   "peerDependencies": {
-    "hapi": ">=17",
+    "@hapi/hapi": ">=20",
     "redis": "^3.0.0"
   }
 }

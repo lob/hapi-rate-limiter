@@ -1,6 +1,6 @@
 'use strict';
 
-const HapiAuthBasic = require('hapi-auth-basic');
+const HapiAuthBasic = require('@hapi/basic');
 
 exports.register = async (server) => {
   await server.register(HapiAuthBasic);
