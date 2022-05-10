@@ -153,8 +153,8 @@ describe('plugin', async () => {
     }
   },
   {
-    method: 'PUT',
-    path: '/put_test',
+    method: 'OPTIONS',
+    path: '/options_test',
     config: {
       handler: (request) => {
         return { rate: request.plugins['hapi-rate-limiter'].rate };
@@ -197,10 +197,10 @@ describe('plugin', async () => {
     expect(response.result.rate.remaining).to.eql(defaultRate.limit - 1);
   });
 
-  it('ignores everything except GET, POST, and DELETE requests', () => {
+  it('ignores everything except GET, POST, PUT, and DELETE requests', () => {
     return server.inject({
-      method: 'PUT',
-      url: '/put_test',
+      method: 'OPTIONS',
+      url: '/options_test',
       auth: {
         credentials: { api_key: '123' },
         strategy: 'basic'
