@@ -1,5 +1,5 @@
 # hapi-rate-limiter
-A [Hapi](http://hapijs.com/) plugin that enables rate-limiting for GET, POST, and DELETE requests. This plugin can be configured with custom rates on a route-by-route basis.
+A [Hapi](http://hapijs.com/) plugin that enables rate-limiting for GET, POST, PUT and DELETE requests. This plugin can be configured with custom rates on a route-by-route basis.
 
 To use with Hapi >= v17 you should install `hapi-rate-limiter@v4`. To use with Hapi <= v16 you should install `hapi-rate-limiter@v3`.
 
