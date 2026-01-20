@@ -32,7 +32,7 @@ await server.register({
     defaultRate: (request) => defaultRate,
     key: (request) => request.auth.credentials.apiKey,
     redisClient: RedisClient,
-    overLimitError: (rate) => new Error(`Rate Limit Exceeded - try again in ${rate.window} seconds`),
+    overLimitError: (rate, request, h) => new Error(`Rate Limit Exceeded - try again in ${rate.window} seconds`),
     onRedisError: (err) => console.log(err),
     timer: (ms) => console.log(`Rate Limit Latency - ${ms} milliseconds`)
   }
@@ -67,7 +67,7 @@ A function that returns a prefix (string) for a given request. The `keyPrefix` i
 A promisified redis client
 
 ##### `overLimitError`
-A function that is called when the rate limit is exceeded. It must return an error. It is called with an object `rate` that contains information about the current state of the request rate.
+A function that is called when the rate limit is exceeded. It must return an error. It is called with an object `rate` that contains information about the current state of the request rate, the `request` and `h` the response toolkit.
 
 ##### `onRedisError`
 An optional function that is called when the call to the Redis client errors. It is called with the `err` from the Redis client.
