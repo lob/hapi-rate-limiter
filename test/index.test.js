@@ -73,6 +73,21 @@ describe('plugin', async () => {
   },
   {
     method: 'POST',
+    path: '/default_no_headers',
+    config: {
+      plugins: {
+        rateLimit: {
+          enabled: true,
+          noHeaders: true
+        }
+      },
+      handler: (request) => {
+        return { rate: request.plugins['hapi-rate-limiter'].rate };
+      }
+    }
+  },
+  {
+    method: 'POST',
     path: '/short_limit_test',
     config: {
       plugins: {
@@ -430,6 +445,20 @@ describe('plugin', async () => {
     })
       .then((response) => {
         expect(response.headers).to.contain.all.keys(['x-rate-limit-reset', 'x-rate-limit-limit', 'x-rate-limit-remaining']);
+      });
+  });
+
+  it('allows to not returns the headers', () => {
+    return server.inject({
+      method: 'POST',
+      url: '/default_no_headers',
+      auth: {
+        credentials: { api_key: '123' },
+        strategy: 'basic'
+      }
+    })
+      .then((response) => {
+        expect(response.headers).to.not.contain.all.keys(['x-rate-limit-reset', 'x-rate-limit-limit', 'x-rate-limit-remaining']);
       });
   });
 

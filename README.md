@@ -75,6 +75,9 @@ An optional function that is called when the call to the Redis client errors. It
 ##### `timer`
 An optional function that will be called upon every rate limit request. The argument will be the time in milliseconds to perform the rate limit process.
 
+##### `noHeaders`
+An optional boolean to no set rate limit headers on the response.
+
 ## Managing Routes
 Settings for individual routes can be set while registering a route.
 
@@ -135,3 +138,5 @@ Rate-limiting information for each request is attached to the response header wi
 `x-rate-limit-remaining:` remaining number of requests allows within current window
 
 `x-rate-limit-reset:` time when rate-limiter will reset (UTC seconds-since-epoch)
+
+You can disable those by settings `noHeaders: true` on the plugin options or on per-route basis.
